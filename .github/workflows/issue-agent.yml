@@ -1,0 +1,76 @@
+name: Issue Agent — 이슈 자동 처리
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  process-issue:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: |
+            GitHub 이슈 #${{ github.event.issue.number }}이 등록/수정되었습니다.
+
+            제목: ${{ github.event.issue.title }}
+            내용: ${{ github.event.issue.body }}
+
+            ## 핵심 규칙: 반드시 이슈에 결과를 코멘트로 남겨라
+
+            모든 작업이 끝나면 반드시 아래 명령으로 이슈에 상세 결과를 남겨라:
+            gh issue comment ${{ github.event.issue.number }} --body "결과 내용"
+
+            코멘트에는 반드시 포함할 것:
+            - 무엇을 했는지 (변경된 파일 목록)
+            - 테스트 결과 (통과 여부)
+            - 빌드 결과
+            - 처리 못한 항목이 있다면 이유
+
+            ## 처리 방법
+            1. 이슈 내용을 분석하고 요구사항을 파악
+            2. 관련 소스 코드를 읽고 이해
+            3. 구현이 명확하면:
+               - 코드를 수정
+               - pnpm test로 테스트 통과 확인
+               - pnpm build로 빌드 성공 확인
+               - git add + git commit (closes #${{ github.event.issue.number }} 포함)
+               - git push origin main
+               - gh issue comment로 상세 결과 남기기
+            4. 불명확하면:
+               - gh issue comment로 질문 남기기
+               - 코드 수정하지 말 것
+
+            ## 규칙
+            - 테스트 실패하면 코드 수정 말고 이유를 코멘트로 남길 것
+            - 대규모 리팩토링이면 계획만 코멘트
+            - 한국어 커밋 메시지 OK
+            - 최소한의 변경만
+
+            ## 프로젝트 컨텍스트
+            Next.js 노후사연 YouTube 콘텐츠 자동화 도구
+            - SQLite + Drizzle ORM, Claude API, Vitest
+            - YouTube Data API v3 업로드 파이프라인

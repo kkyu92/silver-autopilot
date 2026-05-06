@@ -1,0 +1,62 @@
+name: "📚 Submit Lesson/Policy to Playbook"
+
+# lesson: / policy: / feedback: / memory: prefix 커밋 →
+# 허브 worker-lesson 채널로 dispatch.
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  submit:
+    if: |
+      startsWith(github.event.head_commit.message, 'lesson:') ||
+      startsWith(github.event.head_commit.message, 'policy:') ||
+      startsWith(github.event.head_commit.message, 'feedback:') ||
+      startsWith(github.event.head_commit.message, 'memory:')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine prefix + subtype
+        id: classify
+        env:
+          MSG: ${{ github.event.head_commit.message }}
+        run: |
+          PREFIX=$(printf '%s' "$MSG" | head -1 | sed 's/:.*//')
+          echo "prefix=$PREFIX" >> $GITHUB_OUTPUT
+          if [ "$PREFIX" = "lesson" ]; then
+            echo "subtype=" >> $GITHUB_OUTPUT
+          else
+            echo "subtype=self-policy" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract title & body
+        id: extract
+        env:
+          MSG: ${{ github.event.head_commit.message }}
+          PREFIX: ${{ steps.classify.outputs.prefix }}
+        run: |
+          TITLE=$(printf '%s' "$MSG" | head -1 | sed "s/^${PREFIX}:[[:space:]]*//")
+          echo "title=$TITLE" >> $GITHUB_OUTPUT
+          {
+            echo "body<<EOF_LESSON"
+            printf '%s' "$MSG" | tail -n +2
+            echo
+            echo "EOF_LESSON"
+          } >> $GITHUB_OUTPUT
+
+      - name: Dispatch to playbook
+        env:
+          GH_TOKEN: ${{ secrets.PLAYBOOK_PAT }}
+          TITLE: ${{ steps.extract.outputs.title }}
+          BODY: ${{ steps.extract.outputs.body }}
+          SUBTYPE: ${{ steps.classify.outputs.subtype }}
+          FINGERPRINT: ${{ github.sha }}
+        run: |
+          gh api repos/kkyu92/playbook/dispatches \
+            -f event_type=worker-lesson \
+            -f "client_payload[source_repo]=${GITHUB_REPOSITORY}" \
+            -f "client_payload[title]=${TITLE}" \
+            -f "client_payload[body]=${BODY}" \
+            -f "client_payload[type]=lesson" \
+            -f "client_payload[subtype]=${SUBTYPE}" \
+            -f "client_payload[fingerprint]=${FINGERPRINT}"
