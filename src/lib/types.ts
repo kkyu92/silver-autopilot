@@ -10,7 +10,14 @@ export const STEPS = [
 
 export type StepName = (typeof STEPS)[number]
 export type RunStatus = 'pending' | 'running' | 'failed' | 'done'
-export type PostSource = 'nate' | 'naver_cafe' | 'bobae'
+export type PostSource =
+  | 'nate'
+  | 'bobae'
+  | 'fmkorea'
+  | 'humoruniv'
+  | 'cook82'
+  | 'theqoo'
+  | 'ruliweb'
 
 /**
  * State invariants:
