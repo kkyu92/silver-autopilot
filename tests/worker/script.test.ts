@@ -104,10 +104,20 @@ describe('runScript', () => {
     expect(result.image_prompt).toBe('a dramatic scene')
   })
 
-  it('메타데이터 파싱 실패 시 빈 문자열로 계속 진행', async () => {
+  it('메타데이터 callClaude 실패 시 빈 문자열로 계속 진행', async () => {
     mockCallClaude
       .mockResolvedValueOnce(LONG_SCRIPT)
-      .mockRejectedValueOnce(new Error('invalid JSON'))
+      .mockRejectedValueOnce(new Error('claude CLI timeout'))
+    const result = await runScript(BASE_RUN)
+    expect(result.script).toBe(LONG_SCRIPT)
+    expect(result.script_title).toBe('')
+    expect(result.script_description).toBe('')
+  })
+
+  it('메타데이터 JSON.parse 실패 시 빈 문자열로 계속 진행', async () => {
+    mockCallClaude
+      .mockResolvedValueOnce(LONG_SCRIPT)
+      .mockResolvedValueOnce('INVALID_JSON_STRING')
     const result = await runScript(BASE_RUN)
     expect(result.script).toBe(LONG_SCRIPT)
     expect(result.script_title).toBe('')
