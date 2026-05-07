@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "worker": "tsx src/worker/orchestrator.ts",
+    "worker:status": "tsx src/worker/status.ts",
+    "worker:restart": "tsx src/worker/restart.ts"
   },
   "dependencies": {
     "better-sqlite3": "^12.8.0",
