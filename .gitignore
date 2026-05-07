@@ -18,3 +18,4 @@ data/
 .gstack/
 HANDOFF_SNAPSHOT.md
 .claude/worktrees/
+.worktrees/
