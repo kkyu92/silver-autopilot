@@ -1,6 +1,6 @@
 import type { RawPost } from './types'
 
-const MIN_CHARS = 500
+export const MIN_CHARS = 500
 
 export function selectBestPost(posts: RawPost[]): RawPost {
   const filtered = posts.filter(p => p.content.length >= MIN_CHARS)

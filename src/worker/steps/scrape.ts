@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid'
 import { db } from '../../db'
 import { scrapedPosts } from '../../db/schema'
 import { createBrowser } from '../../scraper/browser'
-import { selectBestPost } from '../../scraper/select'
+import { selectBestPost, MIN_CHARS } from '../../scraper/select'
 import { scrapeBobae } from '../../scraper/sites/bobae'
 import { scrapeCook82 } from '../../scraper/sites/cook82'
 import { scrapeFmkorea } from '../../scraper/sites/fmkorea'
@@ -59,7 +59,7 @@ export async function runScrape(run: PipelineRun): Promise<Partial<PipelineRun>>
   const selected = selectBestPost(newPosts)
 
   const now = Math.floor(Date.now() / 1000)
-  for (const p of newPosts.filter(np => np.content.length >= 500)) {
+  for (const p of newPosts.filter(np => np.content.length >= MIN_CHARS)) {
     await db.insert(scrapedPosts).values({
       id: nanoid(),
       source: p.source,
