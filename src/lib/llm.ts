@@ -125,8 +125,7 @@ async function spawnClaudeWithRetry(
     } catch (err) {
       lastErr = err as Error
       const isTransient = SPAWN_TRANSIENT_PATTERN.test(lastErr.message ?? '')
-      const isTimeout = /timeout after/.test(lastErr.message ?? '')
-      if (isTransient && !isTimeout && attempt < 2) {
+      if (isTransient && attempt < 2) {
         await new Promise((r) => setTimeout(r, SPAWN_RETRY_DELAY_MS))
         continue
       }
@@ -142,7 +141,9 @@ export async function callClaude(opts: CallClaudeOptions): Promise<string> {
 
   for (let attempt = 1; attempt <= maxJsonAttempts; attempt++) {
     const attemptOpts =
-      attempt === 1 ? opts : { ...opts, systemPrompt: opts.systemPrompt + JSON_RETRY_GUARD }
+      attempt === 1
+        ? opts
+        : { ...opts, systemPrompt: opts.systemPrompt + JSON_RETRY_GUARD, expectJson: false }
     const { stdout, stderr, code, signal } = await spawnClaudeWithRetry(attemptOpts)
 
     if (code !== 0) {
