@@ -1,9 +1,8 @@
 import { callClaude } from '../../lib/llm'
-import { SCRIPT_SYSTEM_PROMPT, META_SYSTEM_PROMPT } from '../prompts/script-system'
+import { SCRIPT_SYSTEM_PROMPT, META_SYSTEM_PROMPT, MIN_SCRIPT_CHARS } from '../prompts/script-system'
 import type { PipelineRun } from '../../lib/types'
 import { log } from '../logger'
 
-const MIN_SCRIPT_CHARS = 7500
 const MAX_RETRIES = 2
 
 export async function runScript(run: PipelineRun): Promise<Partial<PipelineRun>> {
