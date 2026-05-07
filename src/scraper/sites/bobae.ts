@@ -1,7 +1,7 @@
 import type { Browser } from 'playwright'
-import type { RawPost } from '../types'
+import type { RawPost, SiteScraper } from '../types'
 
-export async function scrapeBobae(browser: Browser): Promise<RawPost[]> {
+export const scrapeBobae: SiteScraper = async (browser) => {
   const page = await browser.newPage()
   try {
     await page.goto('https://www.bobaedream.co.kr/best?code=freeb', {
@@ -21,11 +21,11 @@ export async function scrapeBobae(browser: Browser): Promise<RawPost[]> {
           comments: parseInt(commentsEl?.textContent?.replace(/[^0-9]/g, '') ?? '0', 10),
           rankInSite: i + 1,
         }
-      })
+      }).filter(it => it.url)
     )
 
     const posts: RawPost[] = []
-    for (const item of items.filter(it => it.url)) {
+    for (const item of items) {
       try {
         await page.goto(item.url, { waitUntil: 'domcontentloaded', timeout: 30000 })
         const content = await page.$eval(
@@ -35,7 +35,7 @@ export async function scrapeBobae(browser: Browser): Promise<RawPost[]> {
         if (content.trim()) {
           posts.push({ source: 'bobae', ...item, content: content.trim() })
         }
-        await page.waitForTimeout(1200)
+        await page.waitForTimeout(1000 + Math.floor(Math.random() * 1000))
       } catch {
         // 개별 게시글 실패 시 스킵
       }

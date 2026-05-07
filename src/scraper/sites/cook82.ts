@@ -1,7 +1,7 @@
 import type { Browser } from 'playwright'
-import type { RawPost } from '../types'
+import type { RawPost, SiteScraper } from '../types'
 
-export async function scrapeCook82(browser: Browser): Promise<RawPost[]> {
+export const scrapeCook82: SiteScraper = async (browser) => {
   const page = await browser.newPage()
   try {
     await page.goto('https://www.82cook.com/entiz/list.php?bn=15', {
@@ -10,7 +10,7 @@ export async function scrapeCook82(browser: Browser): Promise<RawPost[]> {
     })
 
     const items = await page.$$eval('table.list_table tbody tr, ul.list_ul li', (els) =>
-      els.filter(el => el.querySelector('a')).slice(0, 10).map((el, i) => {
+      els.slice(0, 10).map((el, i) => {
         const a = el.querySelector('td.tit a, td.subject a, a.tit') as HTMLAnchorElement | null
         const likesEl = el.querySelector('td.like, span.like_cnt')
         const commentsEl = el.querySelector('td.reply, span.cmt')
@@ -21,11 +21,11 @@ export async function scrapeCook82(browser: Browser): Promise<RawPost[]> {
           comments: parseInt(commentsEl?.textContent?.replace(/[^0-9]/g, '') ?? '0', 10),
           rankInSite: i + 1,
         }
-      })
+      }).filter(it => it.url)
     )
 
     const posts: RawPost[] = []
-    for (const item of items.filter(it => it.url)) {
+    for (const item of items) {
       try {
         await page.goto(item.url, { waitUntil: 'domcontentloaded', timeout: 30000 })
         const content = await page.$eval(
@@ -35,7 +35,7 @@ export async function scrapeCook82(browser: Browser): Promise<RawPost[]> {
         if (content.trim()) {
           posts.push({ source: 'cook82', ...item, content: content.trim() })
         }
-        await page.waitForTimeout(1200)
+        await page.waitForTimeout(1000 + Math.floor(Math.random() * 1000))
       } catch {
         // 개별 게시글 실패 시 스킵
       }

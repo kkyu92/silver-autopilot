@@ -1,7 +1,7 @@
 import type { Browser } from 'playwright'
-import type { RawPost } from '../types'
+import type { RawPost, SiteScraper } from '../types'
 
-export async function scrapeTheqoo(browser: Browser): Promise<RawPost[]> {
+export const scrapeTheqoo: SiteScraper = async (browser) => {
   const page = await browser.newPage()
   try {
     await page.goto('https://theqoo.net/hot', {
@@ -11,7 +11,7 @@ export async function scrapeTheqoo(browser: Browser): Promise<RawPost[]> {
     await page.locator('button:has-text("확인"), button:has-text("동의")').click({ timeout: 3000 }).catch(() => {})
 
     const items = await page.$$eval('table.theqoo_board_table tbody tr, ul li.li_hot', (els) =>
-      els.filter(el => el.querySelector('a')).slice(0, 10).map((el, i) => {
+      els.slice(0, 10).map((el, i) => {
         const a = el.querySelector('td.title a, a.title') as HTMLAnchorElement | null
         const likesEl = el.querySelector('td.recom, span.recom')
         const commentsEl = el.querySelector('td.reply, span.comment')
@@ -22,11 +22,11 @@ export async function scrapeTheqoo(browser: Browser): Promise<RawPost[]> {
           comments: parseInt(commentsEl?.textContent?.replace(/[^0-9]/g, '') ?? '0', 10),
           rankInSite: i + 1,
         }
-      })
+      }).filter(it => it.url)
     )
 
     const posts: RawPost[] = []
-    for (const item of items.filter(it => it.url)) {
+    for (const item of items) {
       try {
         await page.goto(item.url, { waitUntil: 'domcontentloaded', timeout: 30000 })
         const content = await page.$eval(
@@ -36,7 +36,7 @@ export async function scrapeTheqoo(browser: Browser): Promise<RawPost[]> {
         if (content.trim()) {
           posts.push({ source: 'theqoo', ...item, content: content.trim() })
         }
-        await page.waitForTimeout(1200)
+        await page.waitForTimeout(1000 + Math.floor(Math.random() * 1000))
       } catch {
         // 개별 게시글 실패 시 스킵
       }
