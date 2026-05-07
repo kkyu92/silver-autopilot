@@ -19,3 +19,12 @@ data/
 HANDOFF_SNAPSHOT.md
 .claude/worktrees/
 .worktrees/
+
+# Logs
+logs/*.log
+
+# Storage
+storage/audio/
+storage/video/
+storage/thumbnail/
+storage/background/
