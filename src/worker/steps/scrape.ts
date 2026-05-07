@@ -26,14 +26,14 @@ const SCRAPERS = [
 ] as const
 
 export async function runScrape(run: PipelineRun): Promise<Partial<PipelineRun>> {
-  const browser = await createBrowser()
+  const { browser, ctx } = await createBrowser()
   const allPosts: RawPost[] = []
 
   try {
     for (const { name, fn } of SCRAPERS) {
       try {
         log(`[scrape] ${name} 수집 시작`)
-        const posts = await fn(browser)
+        const posts = await fn(ctx)
         log(`[scrape] ${name} ${posts.length}개 수집`)
         allPosts.push(...posts)
       } catch (err) {
@@ -41,6 +41,7 @@ export async function runScrape(run: PipelineRun): Promise<Partial<PipelineRun>>
       }
     }
   } finally {
+    await ctx.close()
     await browser.close()
   }
 
@@ -69,8 +70,8 @@ export async function runScrape(run: PipelineRun): Promise<Partial<PipelineRun>>
       likes: p.likes,
       comments: p.comments,
       scraped_at: now,
-      used: p.url === selected.url ? 1 : 0,
-      pipeline_run_id: p.url === selected.url ? run.id : null,
+      used: p === selected ? 1 : 0,
+      pipeline_run_id: p === selected ? run.id : null,
     }).onConflictDoNothing()
   }
 

@@ -1,4 +1,4 @@
-import type { Browser } from 'playwright'
+import type { BrowserContext } from 'playwright'
 
 export interface RawPost {
   source: string
@@ -10,4 +10,4 @@ export interface RawPost {
   rankInSite: number // 1-based, 베스트 게시판 내 순위
 }
 
-export type SiteScraper = (browser: Browser) => Promise<RawPost[]>
+export type SiteScraper = (ctx: BrowserContext) => Promise<RawPost[]>

@@ -1,8 +1,8 @@
-import type { Browser } from 'playwright'
+import type { BrowserContext } from 'playwright'
 import type { RawPost, SiteScraper } from '../types'
 
-export const scrapeHumoruniv: SiteScraper = async (browser) => {
-  const page = await browser.newPage()
+export const scrapeHumoruniv: SiteScraper = async (ctx) => {
+  const page = await ctx.newPage()
   try {
     await page.goto('https://www.humoruniv.com/board/humor/list.html?table=pds', {
       waitUntil: 'domcontentloaded',

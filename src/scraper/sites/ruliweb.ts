@@ -1,8 +1,8 @@
-import type { Browser } from 'playwright'
+import type { BrowserContext } from 'playwright'
 import type { RawPost, SiteScraper } from '../types'
 
-export const scrapeRuliweb: SiteScraper = async (browser) => {
-  const page = await browser.newPage()
+export const scrapeRuliweb: SiteScraper = async (ctx) => {
+  const page = await ctx.newPage()
   try {
     await page.goto('https://bbs.ruliweb.com/best/board/300143', {
       waitUntil: 'domcontentloaded',
