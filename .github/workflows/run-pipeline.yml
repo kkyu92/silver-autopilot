@@ -22,3 +22,16 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm worker
+
+      - name: Notify playbook on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.PLAYBOOK_PAT }}
+        run: |
+          gh api repos/kkyu92/playbook/dispatches \
+            -f event_type=worker-error \
+            -f "client_payload[source_repo]=${GITHUB_REPOSITORY}" \
+            -f "client_payload[title]=silver-autopilot 파이프라인 실패" \
+            -f "client_payload[body]=Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            -f "client_payload[type]=error-log" \
+            -f "client_payload[fingerprint]=${GITHUB_RUN_ID}"
