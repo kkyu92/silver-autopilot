@@ -12,6 +12,13 @@ export type StepName = (typeof STEPS)[number]
 export type RunStatus = 'pending' | 'running' | 'failed' | 'done'
 export type PostSource = 'nate' | 'naver_cafe' | 'bobae'
 
+/**
+ * State invariants:
+ * - pending:  current_step='scrape', error_step=null
+ * - running:  current_step=<active step>, error_step=null
+ * - failed:   error_step=<failed step>, error_message set
+ * - done:     error_step=null
+ */
 export interface PipelineRun {
   id: string
   date: string
