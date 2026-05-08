@@ -6,7 +6,7 @@ import { googleTts } from '../src/lib/tts/google'
 import { elevenLabsTts } from '../src/lib/tts/elevenlabs'
 import { splitScript } from '../src/lib/tts/types'
 
-const DB_PATH = process.env.DB_PATH ?? path.join(process.cwd(), 'data', 'silver.db')
+const DB_PATH = process.env.DB_PATH ?? path.join(process.cwd(), 'data', 'silver-autopilot.db')
 
 function getLatestScript(): { id: string; script: string } {
   const db = new Database(DB_PATH, { readonly: true })
@@ -27,10 +27,8 @@ async function runProvider(
   fn: (text: string) => Promise<Buffer>,
   paragraphs: string[],
   runId: string,
+  outDir: string,
 ): Promise<void> {
-  const outDir = path.join(process.cwd(), 'output', 'compare')
-  fs.mkdirSync(outDir, { recursive: true })
-
   const chunks: Buffer[] = []
   for (const para of paragraphs) {
     chunks.push(await fn(para))
@@ -47,17 +45,20 @@ async function main() {
 
   const paragraphs = splitScript(script)
 
+  const outDir = path.join(process.cwd(), 'output', 'compare')
+  fs.mkdirSync(outDir, { recursive: true })
+
   const results = await Promise.allSettled([
-    runProvider('naver', naverTts, paragraphs, id),
-    runProvider('google', googleTts, paragraphs, id),
-    runProvider('elevenlabs', elevenLabsTts, paragraphs, id),
+    runProvider('naver', naverTts, paragraphs, id, outDir),
+    runProvider('google', googleTts, paragraphs, id, outDir),
+    runProvider('elevenlabs', elevenLabsTts, paragraphs, id, outDir),
   ])
 
   const providers = ['naver', 'google', 'elevenlabs']
   console.log('\n--- 결과 요약 ---')
   results.forEach((r, i) => {
     if (r.status === 'rejected') {
-      console.log(`❌ ${providers[i]}: ${(r.reason as Error).message}`)
+      console.log(`❌ ${providers[i]}: ${r.reason instanceof Error ? r.reason.message : String(r.reason)}`)
     }
   })
 }
