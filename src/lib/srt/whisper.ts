@@ -9,6 +9,8 @@ export async function transcribe(audioPath: string): Promise<WhisperResponse> {
 
   const model = process.env.GROQ_WHISPER_MODEL ?? 'whisper-large-v3-turbo'
 
+  if (!fs.existsSync(audioPath)) throw new Error(`audio 파일 없음: ${audioPath}`)
+
   const audio = fs.readFileSync(audioPath)
   const blob = new Blob([audio], { type: 'audio/mpeg' })
 

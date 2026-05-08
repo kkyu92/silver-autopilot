@@ -24,6 +24,10 @@ describe('transcribe', () => {
     await expect(transcribe(tmpMp3)).rejects.toThrow(/GROQ_API_KEY/)
   })
 
+  it('audio 파일 없으면 throw', async () => {
+    await expect(transcribe('/nonexistent/path.mp3')).rejects.toThrow(/audio 파일 없음/)
+  })
+
   it('성공 응답 → WhisperResponse 파싱', async () => {
     const fakeResponse = {
       text: '할머니의 손은 거칠었다',
