@@ -17,9 +17,10 @@ async function callWithRetry<T>(fn: () => Promise<T>): Promise<T> {
 
 export async function runSrt(run: PipelineRun): Promise<Partial<PipelineRun>> {
   if (!run.audio_path) throw new Error('audio_path 없음')
+  const audioPath = run.audio_path
 
-  log(`[srt] Whisper 호출: ${run.audio_path}`)
-  const whisper = await callWithRetry(() => transcribe(run.audio_path!))
+  log(`[srt] Whisper 호출: ${audioPath}`)
+  const whisper = await callWithRetry(() => transcribe(audioPath))
 
   const cues = splitIntoCues(whisper.segments, whisper.words)
   log(`[srt] cue 생성: ${cues.length}개`)
