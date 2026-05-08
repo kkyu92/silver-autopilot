@@ -21,6 +21,11 @@ export async function googleTts(text: string, opts: TtsOptions = {}): Promise<Bu
     },
   )
 
+  if (!res.ok) {
+    const msg = await res.text().catch(() => res.statusText)
+    throw new Error(`Google TTS HTTP ${res.status}: ${msg}`)
+  }
+
   const json = (await res.json()) as { audioContent?: string; error?: { message: string } }
 
   if (json.error) throw new Error(`Google TTS error: ${json.error.message}`)
