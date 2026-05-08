@@ -3,7 +3,7 @@ export interface TtsOptions {
   speed?: number
 }
 
-const NAVER_MAX_BYTES = 4800
+export const NAVER_MAX_BYTES = 4800
 
 export function splitScript(script: string): string[] {
   if (!/\[문단\d+\]/.test(script)) throw new Error('스크립트에 [문단N] 마커가 없습니다')

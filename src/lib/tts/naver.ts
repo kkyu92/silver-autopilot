@@ -1,4 +1,4 @@
-import type { TtsOptions } from './types'
+import { NAVER_MAX_BYTES, type TtsOptions } from './types'
 
 export async function naverTts(text: string, opts: TtsOptions = {}): Promise<Buffer> {
   const clientId = process.env.NAVER_TTS_CLIENT_ID
@@ -8,7 +8,7 @@ export async function naverTts(text: string, opts: TtsOptions = {}): Promise<Buf
   if (!text.trim()) throw new Error('Naver TTS: text가 비어있습니다')
 
   const byteLen = Buffer.byteLength(text, 'utf8')
-  if (byteLen > 4800) throw new Error(`Naver TTS: 텍스트가 ${byteLen} bytes로 API 한도(4800) 초과`)
+  if (byteLen > NAVER_MAX_BYTES) throw new Error(`Naver TTS: 텍스트가 ${byteLen} bytes로 API 한도(${NAVER_MAX_BYTES}) 초과`)
 
   const voice = opts.voice ?? process.env.NAVER_TTS_VOICE ?? 'ntaesan'
   const speed = opts.speed ?? 0
