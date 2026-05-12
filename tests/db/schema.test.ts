@@ -75,7 +75,7 @@ describe('pipeline_runs 테이블', () => {
       .set({
         status: 'failed',
         error_step: 'tts',
-        error_message: 'Naver Clova API timeout',
+        error_message: 'TTS API timeout',
         error_stack: 'Error: timeout\n  at runTts:34',
         updated_at: now,
       })
@@ -86,7 +86,7 @@ describe('pipeline_runs 테이블', () => {
 
     expect(updated.status).toBe('failed')
     expect(updated.error_step).toBe('tts')
-    expect(updated.error_message).toBe('Naver Clova API timeout')
+    expect(updated.error_message).toBe('TTS API timeout')
     expect(updated.error_stack).toContain('timeout')
   })
 })

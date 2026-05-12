@@ -1,6 +1,5 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import { naverTts } from '../../lib/tts/naver'
 import { googleTts } from '../../lib/tts/google'
 import { elevenLabsTts } from '../../lib/tts/elevenlabs'
 import { splitScript } from '../../lib/tts/types'
@@ -10,10 +9,9 @@ import { log } from '../logger'
 type Provider = (text: string) => Promise<Buffer>
 
 function getProvider(): Provider {
-  const name = process.env.TTS_PROVIDER ?? 'naver'
-  if (name === 'google') return googleTts
+  const name = process.env.TTS_PROVIDER ?? 'google'
   if (name === 'elevenlabs') return elevenLabsTts
-  return naverTts
+  return googleTts
 }
 
 async function callWithRetry(provider: Provider, text: string, index: number): Promise<Buffer> {

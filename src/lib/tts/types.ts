@@ -3,7 +3,9 @@ export interface TtsOptions {
   speed?: number
 }
 
-export const NAVER_MAX_BYTES = 4800
+// Google Cloud TTS: 5000 bytes/request 한도. 4800은 안전 마진.
+// ElevenLabs도 비슷한 수준이라 공통 한도로 사용.
+export const TTS_MAX_BYTES = 4800
 
 export function splitScript(script: string): string[] {
   if (!/\[문단\d+\]/.test(script)) throw new Error('스크립트에 [문단N] 마커가 없습니다')
@@ -13,7 +15,7 @@ export function splitScript(script: string): string[] {
 
   for (const part of parts) {
     const bytes = Buffer.byteLength(part, 'utf8')
-    if (bytes > NAVER_MAX_BYTES) {
+    if (bytes > TTS_MAX_BYTES) {
       console.warn(`[tts] 문단이 ${bytes} bytes로 한도 초과 — 추가 분할 필요`)
     }
   }

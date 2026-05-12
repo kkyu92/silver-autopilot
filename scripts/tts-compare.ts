@@ -1,7 +1,6 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import Database from 'better-sqlite3'
-import { naverTts } from '../src/lib/tts/naver'
 import { googleTts } from '../src/lib/tts/google'
 import { elevenLabsTts } from '../src/lib/tts/elevenlabs'
 import { splitScript } from '../src/lib/tts/types'
@@ -49,12 +48,11 @@ async function main() {
   fs.mkdirSync(outDir, { recursive: true })
 
   const results = await Promise.allSettled([
-    runProvider('naver', naverTts, paragraphs, id, outDir),
     runProvider('google', googleTts, paragraphs, id, outDir),
     runProvider('elevenlabs', elevenLabsTts, paragraphs, id, outDir),
   ])
 
-  const providers = ['naver', 'google', 'elevenlabs']
+  const providers = ['google', 'elevenlabs']
   console.log('\n--- 결과 요약 ---')
   results.forEach((r, i) => {
     if (r.status === 'rejected') {

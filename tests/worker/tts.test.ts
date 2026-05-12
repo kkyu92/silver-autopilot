@@ -2,17 +2,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 
-vi.mock('../../src/lib/tts/naver', () => ({ naverTts: vi.fn() }))
 vi.mock('../../src/lib/tts/google', () => ({ googleTts: vi.fn() }))
 vi.mock('../../src/lib/tts/elevenlabs', () => ({ elevenLabsTts: vi.fn() }))
 
-import { naverTts } from '../../src/lib/tts/naver'
 import { googleTts } from '../../src/lib/tts/google'
 import { elevenLabsTts } from '../../src/lib/tts/elevenlabs'
 import { runTts } from '../../src/worker/steps/tts'
 import type { PipelineRun } from '../../src/lib/types'
 
-const mockNaver = naverTts as ReturnType<typeof vi.fn>
 const mockGoogle = googleTts as ReturnType<typeof vi.fn>
 const mockEleven = elevenLabsTts as ReturnType<typeof vi.fn>
 
@@ -50,10 +47,9 @@ const BASE_RUN: PipelineRun = {
 }
 
 beforeEach(() => {
-  mockNaver.mockReset()
   mockGoogle.mockReset()
   mockEleven.mockReset()
-  process.env.TTS_PROVIDER = 'naver'
+  process.env.TTS_PROVIDER = 'google'
 })
 
 afterEach(() => {
@@ -73,12 +69,12 @@ describe('runTts', () => {
     )
   })
 
-  it('TTS_PROVIDER=naver 면 naverTts 호출', async () => {
-    process.env.TTS_PROVIDER = 'naver'
-    mockNaver.mockResolvedValue(Buffer.from('mp3chunk'))
+  it('TTS_PROVIDER 미설정 또는 기본값이면 googleTts 호출', async () => {
+    delete process.env.TTS_PROVIDER
+    mockGoogle.mockResolvedValue(Buffer.from('mp3chunk'))
     const result = await runTts(BASE_RUN)
-    expect(mockNaver).toHaveBeenCalledTimes(5)
-    expect(mockGoogle).not.toHaveBeenCalled()
+    expect(mockGoogle).toHaveBeenCalledTimes(5)
+    expect(mockEleven).not.toHaveBeenCalled()
     expect(result.audio_path).toContain('run-test-1.mp3')
   })
 
@@ -87,7 +83,7 @@ describe('runTts', () => {
     mockGoogle.mockResolvedValue(Buffer.from('mp3chunk'))
     const result = await runTts(BASE_RUN)
     expect(mockGoogle).toHaveBeenCalledTimes(5)
-    expect(mockNaver).not.toHaveBeenCalled()
+    expect(mockEleven).not.toHaveBeenCalled()
     expect(result.audio_path).toContain('run-test-1.mp3')
   })
 
@@ -96,11 +92,12 @@ describe('runTts', () => {
     mockEleven.mockResolvedValue(Buffer.from('mp3chunk'))
     const result = await runTts(BASE_RUN)
     expect(mockEleven).toHaveBeenCalledTimes(5)
+    expect(mockGoogle).not.toHaveBeenCalled()
     expect(result.audio_path).toContain('run-test-1.mp3')
   })
 
   it('5개 청크가 concat돼서 파일 저장됨', async () => {
-    mockNaver.mockResolvedValue(Buffer.from('AB'))
+    mockGoogle.mockResolvedValue(Buffer.from('AB'))
     const result = await runTts(BASE_RUN)
     const saved = fs.readFileSync(result.audio_path!)
     expect(saved.length).toBe(10) // 5 × 2 bytes
@@ -108,16 +105,16 @@ describe('runTts', () => {
   })
 
   it('문단 API 실패 시 1회 재시도 후 성공', async () => {
-    mockNaver
+    mockGoogle
       .mockRejectedValueOnce(new Error('network error'))
       .mockResolvedValue(Buffer.from('ok'))
     const result = await runTts(BASE_RUN)
-    expect(mockNaver).toHaveBeenCalledTimes(6) // 1실패+1재시도 + 나머지4
+    expect(mockGoogle).toHaveBeenCalledTimes(6) // 1실패+1재시도 + 나머지4
     expect(result.audio_path).toBeTruthy()
   })
 
   it('문단 API 2회 모두 실패 시 throw', async () => {
-    mockNaver
+    mockGoogle
       .mockRejectedValueOnce(new Error('fail1'))
       .mockRejectedValueOnce(new Error('fail2'))
     await expect(runTts(BASE_RUN)).rejects.toThrow('fail2')
