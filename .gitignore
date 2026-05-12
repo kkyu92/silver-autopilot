@@ -29,3 +29,6 @@ storage/video/
 storage/thumbnail/
 storage/background/
 output/
+
+# OS
+.DS_Store
