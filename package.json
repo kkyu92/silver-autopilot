@@ -15,6 +15,7 @@
     "worker:restart": "tsx src/worker/restart.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.95.2",
     "better-sqlite3": "^12.8.0",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",

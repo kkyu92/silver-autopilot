@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
+import Anthropic from '@anthropic-ai/sdk'
 
 export interface CallClaudeOptions {
   systemPrompt: string
@@ -17,6 +18,22 @@ const FORCE_KILL_GRACE_MS = 5_000
 const SPAWN_RETRY_DELAY_MS = 5_000
 const SPAWN_TRANSIENT_PATTERN =
   /\b(ENOENT|EFAULT|EIO|EAGAIN|EBADF|EMFILE|ENFILE)\b|Unknown system error|spawn [a-z]+ failed/i
+
+const SDK_MODEL_MAP = {
+  sonnet: 'claude-sonnet-4-6',
+  opus: 'claude-opus-4-7',
+} as const
+
+const SDK_MAX_TOKENS = 16_000
+
+let sdkClientCache: Anthropic | null | undefined
+
+function getSdkClient(): Anthropic | null {
+  if (sdkClientCache !== undefined) return sdkClientCache
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  sdkClientCache = apiKey ? new Anthropic({ apiKey }) : null
+  return sdkClientCache
+}
 
 const JSON_GUARD =
   '\n\n---\n\nCRITICAL: Your response MUST be valid JSON only — no markdown headers, no preamble, no closing remarks, no code fences. Reply with the raw JSON object or array as the entire response. Start your response with `{` or `[` immediately.'
@@ -135,7 +152,51 @@ async function spawnClaudeWithRetry(
   throw lastErr ?? new Error('spawnClaudeWithRetry: unknown failure')
 }
 
-export async function callClaude(opts: CallClaudeOptions): Promise<string> {
+async function callViaSdk(client: Anthropic, opts: CallClaudeOptions): Promise<string> {
+  const modelName = opts.model ?? 'sonnet'
+  const modelId = SDK_MODEL_MAP[modelName]
+  const baseSystem = opts.expectJson ? opts.systemPrompt + JSON_GUARD : opts.systemPrompt
+  const maxJsonAttempts = opts.expectJson ? 1 + (opts.jsonRetries ?? 1) : 1
+  const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS
+
+  let lastErr: Error | null = null
+  for (let attempt = 1; attempt <= maxJsonAttempts; attempt++) {
+    const sysPrompt = attempt === 1 ? baseSystem : opts.systemPrompt + JSON_RETRY_GUARD
+    const response = await client.messages.create(
+      {
+        model: modelId,
+        max_tokens: SDK_MAX_TOKENS,
+        system: sysPrompt,
+        messages: [{ role: 'user', content: opts.userMessage }],
+      },
+      { timeout: timeoutMs },
+    )
+
+    const stdout = response.content
+      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+      .map(b => b.text)
+      .join('')
+      .trim()
+
+    if (!opts.expectJson) return stdout
+
+    try {
+      const cleaned = extractJson(stdout)
+      JSON.parse(cleaned)
+      return cleaned
+    } catch (e) {
+      const dumpPath = dumpBadOutput(stdout)
+      if (dumpPath) console.error(`[llm] raw dumped → ${dumpPath}`)
+      lastErr = new Error(
+        `invalid JSON (attempt ${attempt}/${maxJsonAttempts}): ${(e as Error).message}`,
+      )
+      if (attempt < maxJsonAttempts) continue
+    }
+  }
+  throw lastErr ?? new Error('callViaSdk: unknown failure')
+}
+
+async function callViaCli(opts: CallClaudeOptions): Promise<string> {
   const maxJsonAttempts = opts.expectJson ? 1 + (opts.jsonRetries ?? 1) : 1
   let lastErr: Error | null = null
 
@@ -166,5 +227,10 @@ export async function callClaude(opts: CallClaudeOptions): Promise<string> {
     }
   }
 
-  throw lastErr ?? new Error('callClaude: unknown failure')
+  throw lastErr ?? new Error('callViaCli: unknown failure')
+}
+
+export async function callClaude(opts: CallClaudeOptions): Promise<string> {
+  const client = getSdkClient()
+  return client ? callViaSdk(client, opts) : callViaCli(opts)
 }
