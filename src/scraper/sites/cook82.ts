@@ -1,37 +1,37 @@
-import type { BrowserContext } from 'playwright'
 import type { RawPost, SiteScraper } from '../types'
 
 export const scrapeCook82: SiteScraper = async (ctx) => {
   const page = await ctx.newPage()
   try {
-    await page.goto('https://www.82cook.com/entiz/list.php?bn=15', {
+    await page.goto('https://www.82cook.com/entiz/enti.php?bn=15', {
       waitUntil: 'domcontentloaded',
       timeout: 30000,
     })
 
-    const items = await page.$$eval('table.list_table tbody tr, ul.list_ul li', (els) =>
-      els.slice(0, 10).map((el, i) => {
-        const a = el.querySelector('td.tit a, td.subject a, a.tit') as HTMLAnchorElement | null
-        const likesEl = el.querySelector('td.like, span.like_cnt')
-        const commentsEl = el.querySelector('td.reply, span.cmt')
-        return {
-          url: a ? (a.href.startsWith('http') ? a.href : 'https://www.82cook.com' + a.getAttribute('href')) : '',
-          title: a?.textContent?.trim() ?? '',
-          likes: parseInt(likesEl?.textContent?.replace(/[^0-9]/g, '') ?? '0', 10),
-          comments: parseInt(commentsEl?.textContent?.replace(/[^0-9]/g, '') ?? '0', 10),
-          rankInSite: i + 1,
-        }
-      }).filter(it => it.url)
+    const items = await page.$$eval('table tr:not(.noticeList)', (els) =>
+      els
+        .filter(tr => tr.querySelector('td.title a'))
+        .slice(0, 10)
+        .map((tr, i) => {
+          const a = tr.querySelector('td.title a') as HTMLAnchorElement | null
+          const href = a?.getAttribute('href') ?? ''
+          const url = href.startsWith('http') ? href : `https://www.82cook.com/entiz/${href}`
+          return {
+            url: a ? url : '',
+            title: (a?.textContent ?? '').trim(),
+            likes: 0,
+            comments: 0,
+            rankInSite: i + 1,
+          }
+        })
+        .filter(it => it.url)
     )
 
     const posts: RawPost[] = []
     for (const item of items) {
       try {
         await page.goto(item.url, { waitUntil: 'domcontentloaded', timeout: 30000 })
-        const content = await page.$eval(
-          'div.cnt_area, div#post_content, div.read_body',
-          el => el.textContent ?? ''
-        ).catch(() => '')
+        const content = await page.$eval('#articleBody', el => el.textContent ?? '').catch(() => '')
         if (content.trim()) {
           posts.push({ source: 'cook82', ...item, content: content.trim() })
         }
