@@ -125,4 +125,64 @@ describe('selectBestPost', () => {
       expect(() => selectBestPost(posts)).toThrow('수집된 글 없음')
     })
   })
+
+  describe('광고/체험단 필터', () => {
+    it('"체험단 모집" 키워드 글을 제외한다 (theqoo 실제 케이스)', () => {
+      const posts = [
+        post('theqoo', 1, 1660, 'u1', '💙더쿠X메디힐💙더마크림 팩클렌저 체험단 모집 (50인)'),
+        post('theqoo', 2,  800, 'u2', '아흔둘 외할머니가 남긴 마지막 편지'),
+      ]
+      expect(selectBestPost(posts).url).toBe('u2')
+    })
+
+    it('단독 "체험단" 키워드도 제외한다', () => {
+      const posts = [
+        post('theqoo', 1, 2000, 'u1', '메디힐 마스크팩 체험단'),
+        post('theqoo', 2,  800, 'u2', '50대 부부의 귀촌 이야기'),
+      ]
+      expect(selectBestPost(posts).url).toBe('u2')
+    })
+
+    it('[광고] [홍보] [협찬] [모집] 대괄호 마커를 제외한다', () => {
+      const posts = [
+        post('bobae', 1, 2000, 'u1', '[광고] 신차 출시 안내'),
+        post('bobae', 2, 2000, 'u2', '[홍보] 새 카페 오픈'),
+        post('bobae', 3, 2000, 'u3', '[협찬] 제품 리뷰'),
+        post('bobae', 4, 2000, 'u4', '[모집] 인플루언서'),
+        post('bobae', 5,  800, 'u5', '아버지의 마지막 출근길'),
+      ]
+      expect(selectBestPost(posts).url).toBe('u5')
+    })
+
+    it('(광고) (홍보) 괄호 마커를 제외한다', () => {
+      const posts = [
+        post('fmkorea', 1, 2000, 'u1', '신상 운동화 추천 (광고)'),
+        post('fmkorea', 2, 2000, 'u2', '카페 오픈 알림 (홍보)'),
+        post('fmkorea', 3,  800, 'u3', '70대 어머니의 시장 이야기'),
+      ]
+      expect(selectBestPost(posts).url).toBe('u3')
+    })
+
+    it('"리뷰어 모집" 조합도 제외한다', () => {
+      const posts = [
+        post('nate', 1, 2000, 'u1', '신제품 리뷰어 모집합니다'),
+        post('nate', 2,  800, 'u2', '평범한 사연'),
+      ]
+      expect(selectBestPost(posts).url).toBe('u2')
+    })
+
+    it('일반 글 제목에 "광고" 단어가 들어가도 false positive 안 난다', () => {
+      const posts = [
+        post('nate', 1,  800, 'u1', '광고 회사 다니다 만난 첫사랑 이야기'),
+      ]
+      expect(selectBestPost(posts).url).toBe('u1')
+    })
+
+    it('일반 글 제목에 "모집"이 들어가도 false positive 안 난다', () => {
+      const posts = [
+        post('nate', 1,  800, 'u1', '인생 모집 마지막 정리 — 60대 어머니의 회고'),
+      ]
+      expect(selectBestPost(posts).url).toBe('u1')
+    })
+  })
 })
