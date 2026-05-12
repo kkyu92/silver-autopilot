@@ -2,8 +2,18 @@ import type { RawPost } from './types'
 
 export const MIN_CHARS = 500
 
+const NOTICE_PATTERNS: RegExp[] = [
+  /\[\s*(공지|필독|안내|이벤트|운영)\s*\]/,
+  /^\s*(공지|필독|안내)\s*[:：]/,
+  /(통합|게시판)\s*공지/,
+]
+
+export function isNoticeTitle(title: string): boolean {
+  return NOTICE_PATTERNS.some(re => re.test(title))
+}
+
 export function selectBestPost(posts: RawPost[]): RawPost {
-  const filtered = posts.filter(p => p.content.length >= MIN_CHARS)
+  const filtered = posts.filter(p => p.content.length >= MIN_CHARS && !isNoticeTitle(p.title))
 
   if (filtered.length === 0) {
     throw new Error('수집된 글 없음 — 모든 사이트 실패 또는 500자 미만')
