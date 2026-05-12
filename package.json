@@ -10,7 +10,7 @@
     "test": "vitest run",
     "tts:compare": "tsx scripts/tts-compare.ts",
     "test:watch": "vitest",
-    "worker": "tsx src/worker/orchestrator.ts",
+    "worker": "tsx --env-file=.env src/worker/orchestrator.ts",
     "worker:status": "tsx src/worker/status.ts",
     "worker:restart": "tsx src/worker/restart.ts"
   },

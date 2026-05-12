@@ -79,6 +79,7 @@ async function main() {
         .update(pipelineRuns)
         .set({ ...updates, updated_at: now() })
         .where(eq(pipelineRuns.id, run.id))
+      run = { ...run, ...updates } as PipelineRun
       log(`[${step}] 완료`)
     } catch (err) {
       const error = err as Error
