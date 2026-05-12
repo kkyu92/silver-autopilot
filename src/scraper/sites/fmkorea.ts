@@ -1,4 +1,3 @@
-import type { BrowserContext } from 'playwright'
 import type { RawPost, SiteScraper } from '../types'
 
 export const scrapeFmkorea: SiteScraper = async (ctx) => {
@@ -9,16 +8,22 @@ export const scrapeFmkorea: SiteScraper = async (ctx) => {
       timeout: 30000,
     })
 
-    const items = await page.$$eval('ul.li > li, div.best_list li', (els) =>
+    const items = await page.$$eval('div.fm_best_widget ul li', (els) =>
       els.slice(0, 10).map((el, i) => {
-        const a = el.querySelector('h3.title a, p.title a') as HTMLAnchorElement | null
-        const likesEl = el.querySelector('span.recomend, em.recomend')
-        const commentsEl = el.querySelector('span.comment_count, a.comment')
+        const h3 = el.querySelector('h3.title') as HTMLElement | null
+        const a = el.querySelector('h3.title a') as HTMLAnchorElement | null
+        const href = a?.getAttribute('href') ?? ''
+        const url = href.startsWith('http') ? href : `https://www.fmkorea.com${href}`
+        const recommText = el.querySelector('a.pc_voted_count span.count')?.textContent ?? ''
+        const replyText = el.querySelector('span.comment_count')?.textContent ?? ''
+        const title = h3?.getAttribute('data-original-title')
+          ?? el.querySelector('span.ellipsis-target')?.textContent
+          ?? ''
         return {
-          url: a ? (a.href.startsWith('http') ? a.href : 'https://www.fmkorea.com' + a.getAttribute('href')) : '',
-          title: a?.textContent?.trim() ?? '',
-          likes: parseInt(likesEl?.textContent?.replace(/[^0-9]/g, '') ?? '0', 10),
-          comments: parseInt(commentsEl?.textContent?.replace(/[^0-9]/g, '') ?? '0', 10),
+          url: a ? url : '',
+          title: title.trim(),
+          likes: parseInt(recommText.replace(/[^0-9]/g, '') || '0', 10),
+          comments: parseInt(replyText.replace(/[^0-9]/g, '') || '0', 10),
           rankInSite: i + 1,
         }
       }).filter(it => it.url)
@@ -28,10 +33,7 @@ export const scrapeFmkorea: SiteScraper = async (ctx) => {
     for (const item of items) {
       try {
         await page.goto(item.url, { waitUntil: 'domcontentloaded', timeout: 30000 })
-        const content = await page.$eval(
-          'div.xe_content, div.read_content',
-          el => el.textContent ?? ''
-        ).catch(() => '')
+        const content = await page.$eval('div.xe_content', el => el.textContent ?? '').catch(() => '')
         if (content.trim()) {
           posts.push({ source: 'fmkorea', ...item, content: content.trim() })
         }
