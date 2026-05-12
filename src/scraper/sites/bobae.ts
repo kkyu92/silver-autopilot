@@ -1,24 +1,25 @@
-import type { BrowserContext } from 'playwright'
 import type { RawPost, SiteScraper } from '../types'
 
 export const scrapeBobae: SiteScraper = async (ctx) => {
   const page = await ctx.newPage()
   try {
-    await page.goto('https://www.bobaedream.co.kr/best?code=freeb', {
+    await page.goto('https://www.bobaedream.co.kr/list?code=best', {
       waitUntil: 'domcontentloaded',
       timeout: 30000,
     })
 
-    const items = await page.$$eval('table.board-list tbody tr, ul.bestn li', (els) =>
+    const items = await page.$$eval('table tr[itemtype*="schema.org/Article"]', (els) =>
       els.slice(0, 10).map((el, i) => {
-        const a = el.querySelector('td.subject a, a.tit') as HTMLAnchorElement | null
-        const likesEl = el.querySelector('td.no em, span.up_num')
-        const commentsEl = el.querySelector('td.replies, span.cmt_num')
+        const a = el.querySelector('a.bsubject') as HTMLAnchorElement | null
+        const href = a?.getAttribute('href') ?? ''
+        const url = href.startsWith('http') ? href : `https://www.bobaedream.co.kr${href}`
+        const recommText = el.querySelector('td.recomm')?.textContent ?? ''
+        const replyText = el.querySelector('strong.totreply')?.textContent ?? ''
         return {
-          url: a ? (a.href.startsWith('http') ? a.href : 'https://www.bobaedream.co.kr' + a.getAttribute('href')) : '',
-          title: a?.textContent?.trim() ?? '',
-          likes: parseInt(likesEl?.textContent?.replace(/[^0-9]/g, '') ?? '0', 10),
-          comments: parseInt(commentsEl?.textContent?.replace(/[^0-9]/g, '') ?? '0', 10),
+          url: a ? url : '',
+          title: (a?.textContent ?? '').trim(),
+          likes: parseInt(recommText.replace(/[^0-9]/g, '') || '0', 10),
+          comments: parseInt(replyText.replace(/[^0-9]/g, '') || '0', 10),
           rankInSite: i + 1,
         }
       }).filter(it => it.url)
@@ -28,10 +29,7 @@ export const scrapeBobae: SiteScraper = async (ctx) => {
     for (const item of items) {
       try {
         await page.goto(item.url, { waitUntil: 'domcontentloaded', timeout: 30000 })
-        const content = await page.$eval(
-          'div.bodyCont, div.view_content, #post_content',
-          el => el.textContent ?? ''
-        ).catch(() => '')
+        const content = await page.$eval('div.bodyCont', el => el.textContent ?? '').catch(() => '')
         if (content.trim()) {
           posts.push({ source: 'bobae', ...item, content: content.trim() })
         }
